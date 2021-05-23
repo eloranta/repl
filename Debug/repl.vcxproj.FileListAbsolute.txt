@@ -1,2 +1,0 @@
-C:\Users\admin\source\repos\repl\Debug\repl.exe
-C:\ZOWN\repl\Debug\repl.exe

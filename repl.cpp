@@ -1,12 +1,11 @@
 #include <iostream>
 #include <string>
-
-class Label;
+#include <vector>
 
 class SExpression
 {
 public:
-    static SExpression* Parse();
+    static SExpression* Read();
     virtual SExpression* Eval() = 0;
     virtual void Print() = 0;
 };
@@ -15,7 +14,7 @@ class Number : public SExpression
 {
     int value;
 public:
-    static SExpression* Parse();
+    static SExpression* Read();
     Number(int value) : value(value) {}
     SExpression* Eval()
     {
@@ -23,46 +22,57 @@ public:
     }
     void Print()
     {
-        std::cout << value << "\n";
+        std::cout << value;
     }
 };
 
 class List : public SExpression
 {
-    char c;
+    std::vector<SExpression *> value;
 public:
-    static SExpression* Parse();
-    List(char c) : c(c) {}
+    static SExpression* Read();
+    List(std::vector<SExpression*> value) : value(value) {}
     SExpression* Eval()
     {
         return this;
     }
     void Print()
     {
-        std::cout << "list\n";
+        std::cout << "(";
+        std::vector<SExpression*>::iterator i = value.begin();
+        if (i != value.end())
+        {
+            (*i++)->Print();
+            while (i != value.end())
+            {
+                std::cout << " ";
+                (*i++)->Print();
+            }
+        }
+ 
+        std::cout << ")";
     }
 };
 
 class Label : public SExpression
 {
-    std::string label;
+    std::string value;
 public:
-    static SExpression* Parse();
-    Label(std::string label) : label(label) {}
+    static SExpression* Read();
+    Label(std::string value) : value(value) {}
     SExpression* Eval()
     {
         return this;
     }
     void Print()
     {
-        std::cout << label << "\n";
+        std::cout << value;
     }
 };
 
-SExpression* SExpression::Parse()
+SExpression* SExpression::Read()
 {
     char c;
-    std::cin.unsetf(std::ios_base::skipws);
 
     do
     {
@@ -74,19 +84,19 @@ SExpression* SExpression::Parse()
 
     if (std::isdigit(c))
     {
-        return Number::Parse();
+        return Number::Read();
     }
-    else if (c == '{')
+    else if (c == '(')
     {
-        return List::Parse();
+        return List::Read();
     }
     else
     {
-        return Label::Parse();
+        return Label::Read();
     }
 }
 
-SExpression* Number::Parse()
+SExpression* Number::Read()
 {
     char c;
     std::string s;
@@ -98,32 +108,57 @@ SExpression* Number::Parse()
     }
     if (std::isspace(c) || c == ')')
     {
-        std::cin.putback(c);
+        if (c == ')')
+            std::cin.putback(c);
         return new Number(stoi(s));
     }
     
-    return new Label("error");
+    s.push_back(c);
+    return new Label("Invalid number: " + s);
 }
 
-SExpression* List::Parse()
+SExpression* List::Read()
 {
     char c;
     std::cin >> c;
-    return new List(c);
-}
-
-SExpression* Label::Parse()
-{
-    std::string c;
     std::cin >> c;
-    return new Label(c);
+    std::vector<SExpression*> list;
+
+    while (c != ')')
+    {
+        std::cin.putback(c);
+        SExpression* expr = SExpression::Read();
+        list.push_back(expr);
+        std::cin >> c;
+    }
+    return new List(list);
 }
 
+SExpression* Label::Read()
+{
+    char c;
+    std::string s;
+    std::cin >> c;
+    while (!std::isspace(c) && c != ')')
+    {
+        s.push_back(c);
+        std::cin >> c;
+    }
+    if (c == ')')
+        std::cin.putback(c);
+
+    return new Label(s);
+}
 
 int main()
 {
+    std::cin.unsetf(std::ios_base::skipws);
+
     while (true)
-        SExpression::Parse()->Eval()->Print();
+    {
+        SExpression::Read()->Eval()->Print();
+        std::cout << std::endl;
+    }
 }
 
 // Run program: Ctrl + F5 or Debug > Start Without Debugging menu
